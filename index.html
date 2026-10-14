@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<title>GyaanSathi</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="GyaanSathi: one-on-one AI tutor prototype for rural students, Classes 6 to 10 (SDG 4)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: brand bar, then one chat card (tutor on the left, student on the right, composer pinned below). Teacher sees a separate doubts view. */
+:root{
+  --bg:#F3F5F8; --surface:#FFFFFF; --ink:#15203A; --muted:#58627A; --line:#DCE0E8;
+  --accent:#C5192D; --accent-ink:#FFFFFF; --tint:#FBE9EC;
+  --low:#B86E00; --mid:#2F5FC4; --high:#1F7F55;
+  --display:"Bricolage Grotesque","Mukta",system-ui,sans-serif;
+  --body:"Mukta",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E1424; --surface:#172038; --ink:#EDF0F8; --muted:#9BA5BD; --line:#2A3552;
+  --accent:#F0505F; --accent-ink:#1B0A0E; --tint:#2C1B27;
+  --low:#F2A93C; --mid:#85A6F7; --high:#4CC38A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1424; --surface:#172038; --ink:#EDF0F8; --muted:#9BA5BD; --line:#2A3552;
+  --accent:#F0505F; --accent-ink:#1B0A0E; --tint:#2C1B27;
+  --low:#F2A93C; --mid:#85A6F7; --high:#4CC38A; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
+  padding-block:0 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:900px;margin:0 auto}
+button,select,textarea,input{font:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,a:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid var(--mid);outline-offset:2px}
+h1,h2,h3{font-family:var(--display);line-height:1.15;margin:0;text-wrap:balance}
+p{margin:0}
+.small{font-size:.88rem;color:var(--muted)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 0 12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.mark{width:42px;height:42px;border-radius:12px;background:var(--accent);display:grid;place-items:center;flex:none}
+.brand h1{font-size:1.5rem;font-weight:800;letter-spacing:-.01em}
+.brand small{display:block;color:var(--muted);font-size:.85rem;margin-top:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px}
+.seg button{border:0;background:none;padding:6px 14px;border-radius:999px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.btn{border:1px solid var(--line);background:var(--surface);padding:9px 16px;border-radius:10px;font-weight:600}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:disabled{opacity:.5;cursor:default}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.stack{display:grid;gap:14px}
+.eyebrow{font-size:.78rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.clsel{display:inline-flex;align-items:center;gap:8px}
+select,input,textarea{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-height:40px}
+.field{display:grid;gap:6px;font-weight:600}
+.field select,.field input{width:100%;max-width:280px}
+.err{color:var(--low);font-weight:600}
+.start{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:8px}
+
+/* Chat */
+.chat{display:grid;grid-template-rows:auto minmax(0,1fr) auto;height:min(78vh,760px);min-height:460px;padding:0;overflow:hidden}
+.chat-h{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.mode{font-size:.8rem;font-weight:700;padding:3px 10px;border-radius:999px;color:var(--c);background:color-mix(in srgb,var(--c) 15%,var(--surface))}
+.mode.ai{--c:var(--high)} .mode.demo{--c:var(--low)}
+.log{overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:86%;padding:11px 15px;border-radius:16px;overflow-wrap:anywhere;white-space:pre-wrap}
+.msg.tutor{background:color-mix(in srgb,var(--ink) 5%,var(--surface));border:1px solid var(--line);border-bottom-left-radius:4px;align-self:flex-start}
+.msg.me{background:var(--ink);color:var(--bg);border-bottom-right-radius:4px;align-self:flex-end}
+.msg.bad{border-color:var(--low)}
+.who{display:block;font-size:.75rem;font-weight:700;color:var(--accent);letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px}
+.dots{display:inline-flex;gap:4px;padding:4px 0;align-items:center}
+.dots i{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:b 1s infinite ease-in-out}
+.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,80%,100%{opacity:.3}40%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.dots i{animation:none;opacity:.7}}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);padding:7px 14px;border-radius:999px;font-weight:600;font-size:.92rem;text-align:left}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.sugg{padding:0 16px 12px}
+.composer{border-top:1px solid var(--line);padding:12px 16px;display:grid;gap:8px;background:var(--surface)}
+.composer .in{display:flex;gap:10px;align-items:flex-end}
+.composer textarea{flex:1;min-width:0;resize:none;line-height:1.4;max-height:140px}
+
+/* Teacher */
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:560px}
+th{font-size:.8rem;font-weight:700;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.pill{display:inline-block;font-size:.78rem;font-weight:700;padding:2px 10px;border-radius:999px;white-space:nowrap;color:var(--c);background:color-mix(in srgb,var(--c) 15%,var(--surface))}
+.pill.ok{--c:var(--high)} .pill.help{--c:var(--low)}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.stat b{display:block;font-family:var(--display);font-size:1.9rem;font-weight:800;color:var(--accent)}
+body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+</style>
+
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+/* ---------- Content ---------- */
+const CLASSES=["6","7","8","9","10"];
+const PIN="1234";
+const CHIPS={
+ "6":[["6m","How do I find the HCF of 12 and 18?","12 और 18 का म.स. कैसे निकालें?"],["6s","Why do we get shadows?","छाया क्यों बनती है?"],["6e","What is the difference between a noun and a pronoun?","संज्ञा और सर्वनाम में क्या अंतर है?"]],
+ "7":[["7m","How do I solve 2x + 1 = 9?","2x + 1 = 9 कैसे हल करें?"],["7s","Why does lemon taste sour?","नींबू खट्टा क्यों होता है?"],["7e","When do I use in, on and at?","in, on और at कब लगाते हैं?"]],
+ "8":[["8m","How do I add 1/2 and 1/3?","1/2 और 1/3 कैसे जोड़ें?"],["8s","What is the difference between plant and animal cells?","पादप और जंतु कोशिका में क्या अंतर है?"],["8e","How do I change active voice to passive?","कर्तृवाच्य को कर्मवाच्य में कैसे बदलें?"]],
+ "9":[["9m","How do I expand (x + 3)²?","(x + 3)² का प्रसार कैसे करें?"],["9s","Why can't sound travel in space?","अंतरिक्ष में ध्वनि क्यों नहीं चलती?"],["9e","How do I write reported speech?","अप्रत्यक्ष कथन कैसे लिखें?"]],
+ "10":[["10m","How do I solve x² − 5x + 6 = 0?","x² − 5x + 6 = 0 कैसे हल करें?"],["10s","What is Ohm's law?","ओम का नियम क्या है?"],["10e","How do I write a formal letter?","औपचारिक पत्र कैसे लिखें?"]]
+};
+/* Pre-written answers used only when no live AI is connected (demo mode) */
+const CAN={
+"6m":["Let's find it together.\n1. Factors of 12: 1, 2, 3, 4, 6, 12.\n2. Factors of 18: 1, 2, 3, 6, 9, 18.\n3. The biggest number in both lists is 6, so the HCF is 6.\nYour turn: what is the HCF of 8 and 12?","चलिए साथ में निकालते हैं।\n1. 12 के गुणनखंड: 1, 2, 3, 4, 6, 12।\n2. 18 के गुणनखंड: 1, 2, 3, 6, 9, 18।\n3. दोनों में सबसे बड़ी संख्या 6 है, इसलिए म.स. 6 है।\nआपकी बारी: 8 और 12 का म.स. क्या होगा?"],
+"6s":["A shadow forms when something blocks light.\n1. Light travels in straight lines.\n2. An opaque object, like your body, stops the light.\n3. The dark space behind it is the shadow.\nThink about it: would a clear glass window make a dark shadow? Why or why not?","छाया तब बनती है जब कोई चीज़ प्रकाश को रोक देती है।\n1. प्रकाश सीधी रेखा में चलता है।\n2. अपारदर्शी वस्तु, जैसे आपका शरीर, प्रकाश को रोक देती है।\n3. उसके पीछे का अँधेरा भाग छाया है।\nसोचिए: क्या साफ़ काँच की खिड़की गहरी छाया बनाएगी? क्यों या क्यों नहीं?"],
+"6e":["A noun is a name. A pronoun takes its place.\n1. Nouns: Ravi, Delhi, book.\n2. Pronouns: he, it, they.\n3. Instead of \"Ravi likes Ravi's bag\", say \"Ravi likes his bag\".\nYour turn: replace the noun in \"Meena lost Meena's pen\" with a pronoun.","संज्ञा नाम होती है और सर्वनाम उसकी जगह आता है।\n1. संज्ञा: Ravi, Delhi, book।\n2. सर्वनाम: he, it, they।\n3. \"Ravi likes Ravi's bag\" की जगह \"Ravi likes his bag\" कहिए।\nआपकी बारी: \"Meena lost Meena's pen\" में संज्ञा की जगह सर्वनाम लगाइए।"],
+"7m":["Think of the equation as a balanced scale.\n1. Take 1 away from both sides: 2x = 8.\n2. Divide both sides by 2: x = 4.\n3. Check: 2 × 4 + 1 = 9. Correct!\nYour turn: solve 3x + 2 = 11.","समीकरण को संतुलित तराज़ू समझिए।\n1. दोनों ओर से 1 घटाएँ: 2x = 8।\n2. दोनों ओर 2 से भाग दें: x = 4।\n3. जाँच: 2 × 4 + 1 = 9। सही!\nआपकी बारी: 3x + 2 = 11 हल कीजिए।"],
+"7s":["Lemon juice has citric acid, and acids taste sour.\n1. Acids turn blue litmus red.\n2. Vinegar and tamarind are sour for the same reason.\n3. Bases, like soap, taste bitter instead.\nQuestion: is baking soda an acid or a base?","नींबू के रस में साइट्रिक अम्ल होता है, और अम्ल खट्टे होते हैं।\n1. अम्ल नीले लिटमस को लाल करते हैं।\n2. सिरका और इमली भी इसी कारण खट्टे हैं।\n3. साबुन जैसे क्षार कड़वे होते हैं।\nसवाल: बेकिंग सोडा अम्ल है या क्षार?"],
+"7e":["Use at for exact time, on for days, and in for months and years.\n1. at 5 o'clock\n2. on Monday\n3. in May, in 2012\nYour turn: fill in the blank: The match starts ___ 4 p.m.","सटीक समय के लिए at, दिनों के लिए on, और महीनों-वर्षों के लिए in लगाते हैं।\n1. at 5 o'clock\n2. on Monday\n3. in May, in 2012\nआपकी बारी: रिक्त स्थान भरिए: The match starts ___ 4 p.m."],
+"8m":["To add fractions, make the bottom numbers equal.\n1. The common denominator of 2 and 3 is 6.\n2. 1/2 = 3/6 and 1/3 = 2/6.\n3. Add: 3/6 + 2/6 = 5/6.\nYour turn: what is 1/4 + 1/2?","भिन्न जोड़ने के लिए पहले हर बराबर करें।\n1. 2 और 3 का सर्वनिष्ठ हर 6 है।\n2. 1/2 = 3/6 और 1/3 = 2/6।\n3. जोड़ें: 3/6 + 2/6 = 5/6।\nआपकी बारी: 1/4 + 1/2 कितना होगा?"],
+"8s":["Both have a nucleus and a cell membrane, but plant cells have extras.\n1. Plant cells have a cell wall and chloroplasts.\n2. Chloroplasts make food using sunlight.\n3. Animal cells have neither.\nQuestion: why do plants need chloroplasts but animals do not?","दोनों में केंद्रक और कोशिका झिल्ली होती है, पर पादप कोशिका में कुछ अतिरिक्त भाग होते हैं।\n1. पादप कोशिका में कोशिका भित्ति और हरितलवक होते हैं।\n2. हरितलवक सूर्य के प्रकाश से भोजन बनाते हैं।\n3. जंतु कोशिका में ये दोनों नहीं होते।\nसवाल: पौधों को हरितलवक क्यों चाहिए पर जंतुओं को नहीं?"],
+"8e":["In passive voice the object comes first.\n1. Active: Tom painted the wall.\n2. Move the object to the front: The wall ...\n3. Add was + past participle + by: The wall was painted by Tom.\nYour turn: change \"Meena wrote the letter\" to passive.","कर्मवाच्य में कर्म पहले आता है।\n1. Active: Tom painted the wall.\n2. कर्म को आगे लाइए: The wall ...\n3. was + past participle + by लगाइए: The wall was painted by Tom.\nआपकी बारी: \"Meena wrote the letter\" को passive में बदलिए।"],
+"9m":["Use the identity (a + b)² = a² + 2ab + b².\n1. Here a = x and b = 3.\n2. a² = x², 2ab = 6x, b² = 9.\n3. So (x + 3)² = x² + 6x + 9.\nYour turn: expand (x + 4)².","सर्वसमिका (a + b)² = a² + 2ab + b² का प्रयोग करें।\n1. यहाँ a = x और b = 3।\n2. a² = x², 2ab = 6x, b² = 9।\n3. इसलिए (x + 3)² = x² + 6x + 9।\nआपकी बारी: (x + 4)² का प्रसार कीजिए।"],
+"9s":["Sound needs particles to carry it.\n1. Sound is a vibration that passes from particle to particle.\n2. Space is almost a vacuum, so there are almost no particles.\n3. With nothing to carry the vibration, sound cannot travel.\nQuestion: how do astronauts talk to each other then?","ध्वनि को चलने के लिए कणों की ज़रूरत होती है।\n1. ध्वनि एक कंपन है जो कण से कण तक जाता है।\n2. अंतरिक्ष लगभग निर्वात है, वहाँ कण लगभग नहीं होते।\n3. कंपन ले जाने वाला कुछ न हो तो ध्वनि नहीं चल सकती।\nसवाल: तो अंतरिक्ष यात्री आपस में बात कैसे करते हैं?"],
+"9e":["Reported speech tells what someone said without their exact words.\n1. Direct: She said, \"I am tired.\"\n2. Change the pronoun and move the tense back: She said that she was tired.\n3. Time words change too: tomorrow becomes the next day.\nYour turn: report this: He said, \"I will help you.\"","अप्रत्यक्ष कथन बिना सटीक शब्दों के बताता है कि किसी ने क्या कहा।\n1. Direct: She said, \"I am tired.\"\n2. सर्वनाम बदलिए और काल एक कदम पीछे कीजिए: She said that she was tired.\n3. समय के शब्द भी बदलते हैं: tomorrow बनता है the next day।\nआपकी बारी: इसे report कीजिए: He said, \"I will help you.\""],
+"10m":["Factorise: find two numbers that multiply to 6 and add to −5.\n1. Those numbers are −2 and −3.\n2. So (x − 2)(x − 3) = 0.\n3. Therefore x = 2 or x = 3.\nYour turn: solve x² − 7x + 12 = 0.","गुणनखंड कीजिए: ऐसी दो संख्याएँ खोजिए जिनका गुणनफल 6 और योग −5 हो।\n1. वे संख्याएँ −2 और −3 हैं।\n2. इसलिए (x − 2)(x − 3) = 0।\n3. अतः x = 2 या x = 3।\nआपकी बारी: x² − 7x + 12 = 0 हल कीजिए।"],
+"10s":["Ohm's law links voltage, current and resistance.\n1. V = I × R.\n2. If I = 3 A and R = 2 ohm, then V = 6 V.\n3. More resistance means less current for the same voltage.\nQuestion: what is the current if V = 12 V and R = 4 ohm?","ओम का नियम वोल्टता, धारा और प्रतिरोध को जोड़ता है।\n1. V = I × R।\n2. यदि I = 3 A और R = 2 ओम हो, तो V = 6 V।\n3. समान वोल्टता पर प्रतिरोध अधिक हो तो धारा कम होती है।\nसवाल: V = 12 V और R = 4 ओम हो तो धारा कितनी होगी?"],
+"10e":["A formal letter follows a fixed order.\n1. Sender's address and date at the top.\n2. Receiver's address, then the subject line.\n3. Salutation (Sir or Madam), a short body, and the ending Yours faithfully.\nYour turn: write a subject line for a letter asking for a library card.","औपचारिक पत्र एक तय क्रम में लिखा जाता है।\n1. ऊपर भेजने वाले का पता और तिथि।\n2. पाने वाले का पता, फिर विषय।\n3. संबोधन (Sir या Madam), छोटा मुख्य भाग और समापन Yours faithfully।\nआपकी बारी: पुस्तकालय कार्ड माँगने वाले पत्र के लिए एक विषय पंक्ति लिखिए।"]
+};
+const NAMES=["Ravi","Meena","Imran","Sunita","Karan","Pooja","Dev"];
+const SUBJ_LABEL={m:["Maths","गणित"],s:["Science","विज्ञान"],e:["English","अंग्रेज़ी"]};
+
+const UI={
+ en:{sub:"Your one-on-one AI tutor for Classes 6 to 10",classLbl:"Class",iAmStudent:"Student",iAmTeacher:"Teacher",
+  studentH:"Ask your doubts",studentD:"Pick your class and start chatting. GyaanSathi explains Maths, Science and English step by step, in English or Hindi.",
+  start:"Start chatting",teacherH:"Teacher sign-in",teacherD:"The doubts dashboard is for teachers only. Enter your PIN to open it.",pinLbl:"Teacher PIN",signIn:"Sign in",
+  wrongPin:"That PIN is not correct. Try again.",logout:"Log out",teacherRole:"Teacher",
+  hello:c=>`Hello! I am GyaanSathi. Ask me any doubt from your Class ${c} Maths, Science or English. I will explain it step by step. You can write in English or Hindi.`,
+  tutor:"Tutor",tryAsking:"Try asking",ph:"Type your doubt here",send:"Send",stop:"Stop",thinking:"Thinking...",
+  live:"Live AI tutor",unavailable:"AI unavailable",demoNote:"The AI service is not connected right now. Please try again later.",
+  e_denied:"The AI tutor is not available in this view. You can still tap the example doubts.",e_rate:"Too many questions at once. Wait a moment and try again.",
+  e_sess:"The AI service is unavailable. Please try again later.",e_ref:"I cannot help with that one. Ask me a school question.",e_gen:"Something went wrong. Please try again.",stopped:"Stopped.",
+  dT:"Doubts dashboard",dD:"Sample data for 7 students in this class. Live doubts would be saved in a database.",
+  total:"Doubts this week",solved:"Solved by the tutor",needs:"Need a teacher",student:"Student",subject:"Subject",doubt:"Doubt",status:"Status",ok:"Solved",help:"Needs teacher"},
+ hi:{sub:"कक्षा 6 से 10 के लिए आपका निजी AI ट्यूटर",classLbl:"कक्षा",iAmStudent:"छात्र",iAmTeacher:"शिक्षक",
+  studentH:"अपनी शंका पूछिए",studentD:"अपनी कक्षा चुनिए और बातचीत शुरू कीजिए। ज्ञानसाथी गणित, विज्ञान और अंग्रेज़ी को एक-एक कदम समझाता है, हिन्दी या अंग्रेज़ी में।",
+  start:"बातचीत शुरू करें",teacherH:"शिक्षक साइन-इन",teacherD:"शंका डैशबोर्ड केवल शिक्षकों के लिए है। खोलने के लिए अपना पिन डालिए।",pinLbl:"शिक्षक पिन",signIn:"साइन इन करें",
+  wrongPin:"पिन सही नहीं है। फिर से कोशिश कीजिए।",logout:"लॉग आउट",teacherRole:"शिक्षक",
+  hello:c=>`नमस्ते! मैं ज्ञानसाथी हूँ। कक्षा ${c} के गणित, विज्ञान या अंग्रेज़ी की कोई भी शंका पूछिए। मैं एक-एक कदम समझाऊँगा। आप हिन्दी या अंग्रेज़ी में लिख सकते हैं।`,
+  tutor:"ट्यूटर",tryAsking:"ऐसे पूछ सकते हैं",ph:"अपनी शंका यहाँ लिखिए",send:"भेजें",stop:"रोकें",thinking:"सोच रहा हूँ...",
+  live:"लाइव AI ट्यूटर",demo:"डेमो मोड",demoNote:"डेमो मोड: उत्तर देखने के लिए नीचे दी गई किसी एक शंका पर टैप कीजिए। किसी भी प्रश्न का उत्तर देने के लिए ज्ञानसाथी को AI मॉडल से जुड़ना होगा।",
+  e_denied:"इस दृश्य में AI ट्यूटर उपलब्ध नहीं है। आप उदाहरण वाली शंकाओं पर टैप कर सकते हैं।",e_rate:"एक साथ बहुत सारे प्रश्न हो गए। थोड़ा रुककर फिर कोशिश कीजिए।",
+  e_sess:"AI सेवा उपलब्ध नहीं है। कृपया थोड़ी देर बाद फिर कोशिश करें।",e_ref:"इस प्रश्न में मैं मदद नहीं कर सकता। कोई स्कूल का प्रश्न पूछिए।",e_gen:"कुछ गड़बड़ हो गई। कृपया फिर कोशिश कीजिए।",stopped:"रोक दिया गया।",
+  dT:"शंका डैशबोर्ड",dD:"इस कक्षा के 7 छात्रों का नमूना डेटा। असली शंकाएँ डेटाबेस में सहेजी जाएँगी।",
+  total:"इस सप्ताह की शंकाएँ",solved:"ट्यूटर ने हल कीं",needs:"शिक्षक चाहिए",student:"छात्र",subject:"विषय",doubt:"शंका",status:"स्थिति",ok:"हल हुई",help:"शिक्षक चाहिए"}
+};
+
+/* ---------- State ---------- */
+let S={lang:"en",role:null,cls:null,msgs:[],busy:false,ctl:null,pinErr:false,sample:null,aiOff:false};
+const L=()=>S.lang==="en"?0:1;
+const u=k=>UI[S.lang][k];
+const $=id=>document.getElementById(id);
+
+const API_URL="/api/chat";
+function makeApiSample(){
+  /* Same shape as Claude's page runtime: the first turn (instructions) is ignored because the server holds them. */
+  return async(input,o)=>{
+    let res;
+    try{
+      res=await fetch(API_URL,{method:"POST",headers:{"content-type":"application/json"},
+        body:JSON.stringify({cls:S.cls,lang:S.lang,messages:input.slice(1)}),signal:o&&o.signal});
+    }catch(e){ if(e&&e.name==="AbortError")throw{code:"cancelled"}; throw{code:"upstream_error"} }
+    if(res.status===429)throw{code:"rate_limited"};
+    if(!res.ok)throw{code:"upstream_error"};
+    const d=await res.json();
+    if(o&&o.onText)o.onText({text:d.text,delta:d.text});
+    return{text:d.text,truncated:false};
+  };
+}
+(async()=>{
+  // Use the app's own backend (Gemini) only; no Claude runtime dependency.
+  try {
+    const r = await fetch(API_URL, { method: "GET", cache: "no-store" });
+    const d = r.ok ? await r.json() : null;
+    if (d && d.ok) S.sample = makeApiSample();
+  } catch (e) {
+    S.sample = null;
+  }
+  render();
+})();
+
+function aiOn(){return !!S.sample&&!S.aiOff}
+
+function rules(){
+  return `You are GyaanSathi, a friendly one-on-one AI tutor for a school student in India. The student is in Class ${S.cls} (NCERT or state board level). You help with Maths, Science and English.
+
+How to answer:
+- Answer the student's doubt step by step. Use short, simple sentences and one idea per step.
+- Use everyday Indian examples (roti, cricket, bus, rupees, school) to make ideas concrete.
+- Reply in the language the student wrote in: English, Hindi in Devanagari, or a Hindi and English mix. If the student has not written yet, use ${S.lang==="hi"?"Hindi":"English"}. When replying in Hindi, keep key technical terms in English with the Hindi meaning in brackets.
+- For homework or practice problems, first give a hint or the first step and let the student try. If the student says they are stuck or asks to see the full solution, show the complete worked solution.
+- End most answers with one short question or a tiny practice problem to check understanding. When the student answers, say clearly whether it is right, praise effort, and gently correct any mistake.
+- Keep replies under about 120 words unless a full worked solution is needed. Write in plain text only: no markdown symbols, no asterisks, no tables, no headings. Use lines like "1." for steps. Write maths in simple text such as x^2, 3/4, sqrt(2).
+- Be warm, patient and encouraging. Never make the student feel bad for not knowing. If the student seems upset, respond kindly in one or two lines, then suggest talking to a teacher or parent.
+- Stay on school learning. If asked for something unrelated or unsafe, politely steer back to studies. If a student mentions being harmed or in danger, tell them to talk to a trusted adult or teacher right away.
+- If you are not sure of an answer, say so and suggest asking the teacher. Never invent facts.`;
+}
+
+function errCopy(code){
+  if(code==="rate_limited")return u("e_rate");
+  if(code==="session_expired")return u("e_sess");
+  if(code==="refused")return u("e_ref");
+  return u("e_gen");
+}
+
+/* ---------- Chat logic ---------- */
+async function send(text,chipId){
+  text=(text||"").trim();
+  if(!text||S.busy)return;
+  S.msgs.push({from:"me",text});
+  const reply={from:"tutor",text:"",pending:true};
+  S.msgs.push(reply);
+  S.busy=true;paintLog();syncComposer();
+  if(!aiOn()){
+    reply.text = u("demoNote");
+    reply.pending = false;
+    reply.bad = true;
+    S.busy = false;
+    paintLog();
+    syncComposer();
+    return;
+  }
+  const turns=[];
+  for(const m of S.msgs){
+    if(m===reply||m.bad||m.pending||!m.text)continue;
+    turns.push({role:m.from==="me"?"user":"assistant",content:m.text});
+  }
+  S.ctl=new AbortController();
+  try{
+    const r=await S.sample([{role:"user",content:rules()},...turns.slice(-14)],{
+      cache:false,modelTier:"default",effort:"low",signal:S.ctl.signal,
+      onText:({text})=>{reply.text=text;reply.pending=false;paintLog()}
+    });
+    reply.text=r.text;reply.pending=false;
+  }catch(e){
+    if(e.code==="cancelled"){reply.text=e.text||u("stopped");reply.pending=false;if(!e.text)reply.bad=true}
+    else{
+      reply.text=e.text||errCopy(e.code);reply.pending=false;if(!e.text)reply.bad=true;
+    }
+  }
+  S.busy=false;S.ctl=null;paintLog();syncComposer();
+  if(S.aiOff)render();
+}
+
+function paintLog(){
+  const log=$("log");if(!log)return;
+  log.textContent="";
+  const hello=document.createElement("div");hello.className="msg tutor";
+  hello.innerHTML=`<span class="who"></span>`;hello.firstChild.textContent=u("tutor");
+  hello.append(document.createTextNode(u("hello")(S.cls)));
+  log.append(hello);
+  for(const m of S.msgs){
+    const d=document.createElement("div");d.className="msg "+m.from+(m.bad?" bad":"");
+    if(m.from==="tutor"){const w=document.createElement("span");w.className="who";w.textContent=u("tutor");d.append(w)}
+    if(m.pending&&!m.text){
+      const dots=document.createElement("span");dots.className="dots";dots.setAttribute("aria-label",u("thinking"));
+      dots.innerHTML="<i></i><i></i><i></i>";d.append(dots);
+    }else d.append(document.createTextNode(m.text));
+    log.append(d);
+  }
+  log.scrollTop=log.scrollHeight;
+}
+function syncComposer(){
+  const s=$("sendBtn"),x=$("stopBtn"),q=$("q");
+  if(s)s.hidden=S.busy;if(x)x.hidden=!S.busy;if(q)q.disabled=S.busy&&false;
+  const sg=$("sugg");if(sg)sg.hidden=S.msgs.length>0;
+}
+
+/* ---------- Views ---------- */
+function header(){
+  const inApp=!!S.role;
+  const opts=CLASSES.map(c=>`<option value="${c}" ${S.cls===c?"selected":""}>${c}</option>`).join("");
+  return `<header class="top">
+   <div class="brand"><div class="mark" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9 11h6M9 14h4"/></svg></div>
+   <div><h1>GyaanSathi</h1><small>${u("sub")}${S.role==="teacher"?" · "+u("teacherRole"):""}</small></div></div>
+   <div class="row">
+    ${inApp?`<label class="clsel"><span class="small">${u("classLbl")}</span><select id="clsel">${opts}</select></label>`:""}
+    <div class="seg" role="group" aria-label="Language">
+     <button data-a="lang" data-v="en" aria-pressed="${S.lang==="en"}">English</button>
+     <button data-a="lang" data-v="hi" aria-pressed="${S.lang==="hi"}">हिन्दी</button></div>
+    ${inApp?`<button class="btn" data-a="logout">${u("logout")}</button>`:""}</div></header>`;
+}
+function viewGate(){
+  const opts=CLASSES.map(c=>`<option value="${c}" ${(S.cls||"8")===c?"selected":""}>${u("classLbl")} ${c}</option>`).join("");
+  return `<div class="start">
+   <section class="card stack"><span class="eyebrow">${u("iAmStudent")}</span><h2 style="font-size:1.5rem">${u("studentH")}</h2><p class="small">${u("studentD")}</p>
+    <label class="field"><span>${u("classLbl")}</span><select id="gcls">${opts}</select></label>
+    <div><button class="btn primary" data-a="gstart">${u("start")}</button></div></section>
+   <section class="card stack"><span class="eyebrow">${u("iAmTeacher")}</span><h2 style="font-size:1.5rem">${u("teacherH")}</h2><p class="small">${u("teacherD")}</p>
+    <label class="field"><span>${u("pinLbl")}</span><input id="pin" type="password" inputmode="numeric" autocomplete="off" maxlength="8"></label>
+    ${S.pinErr?`<p class="err" role="alert">${u("wrongPin")}</p>`:""}
+    <div><button class="btn" data-a="tlogin">${u("signIn")}</button></div></section></div>`;
+}
+function viewChat(){
+  const chips=CHIPS[S.cls].map(([id,en,hi])=>`<button class="chip" data-a="chip" data-id="${id}">${S.lang==="en"?en:hi}</button>`).join("");
+  return `<section class="card chat">
+   <div class="chat-h"><span class="eyebrow">${u("classLbl")} ${S.cls}</span><span class="mode ${aiOn()?"ai":"demo"}">${aiOn()?u("live"):u("unavailable")}</span></div>
+   <div class="log" id="log" aria-live="polite"></div>
+   <div>
+    <div class="sugg" id="sugg"><p class="small" style="margin-bottom:8px">${u("tryAsking")}</p><div class="chips">${chips}</div></div>
+    <div class="composer">
+     <div class="in"><textarea id="q" rows="2" placeholder="${u("ph")}" aria-label="${u("ph")}"></textarea>
+      <button class="btn primary" id="sendBtn" data-a="send">${u("send")}</button>
+      <button class="btn" id="stopBtn" data-a="stop" hidden>${u("stop")}</button></div>
+     ${aiOn()?"":`<p class="small">${u("demoNote")}</p>`}
+    </div></div></section>`;
+}
+function viewTeacher(){
+  const chips=CHIPS[S.cls];
+  const rows=NAMES.map((n,i)=>{const c=chips[i%3];const sub=SUBJ_LABEL[c[0].slice(-1)];const help=(i*5+(+S.cls))%3===0;
+    return {n,sub:sub[L()],q:S.lang==="en"?c[1]:c[2],help}});
+  const needs=rows.filter(r=>r.help).length;
+  return `<div class="stack" style="margin-top:8px">
+   <section class="card stack"><h2 style="font-size:1.4rem">${u("dT")} · ${u("classLbl")} ${S.cls}</h2><p class="small">${u("dD")}</p>
+    <div class="grid3"><div class="stat"><span class="small">${u("total")}</span><b>${rows.length}</b></div>
+     <div class="stat"><span class="small">${u("solved")}</span><b>${rows.length-needs}</b></div>
+     <div class="stat"><span class="small">${u("needs")}</span><b>${needs}</b></div></div></section>
+   <section class="card"><div class="scroll"><table><thead><tr><th>${u("student")}</th><th>${u("subject")}</th><th>${u("doubt")}</th><th>${u("status")}</th></tr></thead><tbody>
+   ${rows.map(r=>`<tr><td><b>${r.n}</b></td><td>${r.sub}</td><td>${r.q}</td><td><span class="pill ${r.help?"help":"ok"}">${r.help?u("help"):u("ok")}</span></td></tr>`).join("")}
+   </tbody></table></div></section></div>`;
+}
+
+function render(){
+  document.documentElement.lang=S.lang;
+  const q=$("q"),draft=q?q.value:"";
+  let v;
+  if(!S.role)v=viewGate();else if(S.role==="teacher")v=viewTeacher();else v=viewChat();
+  $("app").innerHTML=header()+`<main id="main">${v}</main>`;
+  if(S.role==="student"){paintLog();syncComposer();const nq=$("q");if(nq&&draft)nq.value=draft;}
+}
+
+function setClass(c){S.cls=c;S.msgs=[];S.busy=false;if(S.ctl)S.ctl.abort()}
+function doLogin(){
+  const el=$("pin");
+  if(el&&el.value===PIN){S.pinErr=false;S.role="teacher";setClass(S.cls||"8")}else S.pinErr=true;
+  render();
+}
+
+document.addEventListener("click",e=>{
+  const el=e.target.closest("[data-a]");if(!el)return;
+  const a=el.dataset.a,v=el.dataset.v;
+  if(a==="lang"){S.lang=v;render()}
+  else if(a==="gstart"){S.role="student";setClass($("gcls").value);render()}
+  else if(a==="tlogin")doLogin();
+  else if(a==="logout"){if(S.ctl)S.ctl.abort();S.role=null;S.cls=null;S.msgs=[];S.busy=false;S.pinErr=false;render()}
+  else if(a==="chip"){const c=CHIPS[S.cls].find(x=>x[0]===el.dataset.id);send(S.lang==="en"?c[1]:c[2],c[0])}
+  else if(a==="send"){const q=$("q");const t=q.value;q.value="";send(t)}
+  else if(a==="stop"){if(S.ctl)S.ctl.abort()}
+});
+document.addEventListener("change",e=>{if(e.target.id==="clsel"){setClass(e.target.value);render()}});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Enter"&&e.target.id==="pin")doLogin();
+  if(e.key==="Enter"&&!e.shiftKey&&e.target.id==="q"){e.preventDefault();const q=$("q");const t=q.value;q.value="";send(t)}
+});
+render();
+</script>
+
+</body>
+</html>
