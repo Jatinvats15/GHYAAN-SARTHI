@@ -1,7 +1,7 @@
-// GyaanSathi backend: a small serverless function that keeps your Claude API key secret.
+// GyaanSathi backend: a small serverless function that keeps your Gemini API key secret.
 // Deploy on Vercel (the "api" folder is picked up automatically).
-// Required environment variable: ANTHROPIC_API_KEY
-// Optional: CLAUDE_MODEL (default claude-haiku-5-5; use claude-sonnet-5-5 for stronger reasoning)
+// Required environment variable: GEMINI_API_KEY
+// Optional: GEMINI_MODEL (default gemini-2.5-flash)
 
 const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 const MAX_TURNS = 14;        // how much chat history is sent each time
@@ -81,13 +81,17 @@ module.exports = async (req, res) => {
         },
         contents,
         generationConfig: {
-          maxOutputTokens: 700,
+          // Gemini 2.5 "thinking" tokens count toward this limit. With 700 the model could spend it all
+          // thinking and return no text, which the page showed as "Something went wrong".
+          maxOutputTokens: 2048,
           temperature: 0.7,
+          ...(/2\.5-flash/.test(MODEL) ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
         },
       }),
     });
     if (!r.ok) {
-      // Keep API keys and upstream error details private.
+      // Log the reason to Vercel Logs only (never sent to the browser).
+      console.error("Gemini error", r.status, (await r.text()).slice(0, 300));
       const code = r.status === 429 ? 429 : 502;
 
       return res.status(code).json({
@@ -106,6 +110,7 @@ module.exports = async (req, res) => {
       .trim();
 
     if (!text) {
+      console.error("Gemini empty reply", data.candidates?.[0]?.finishReason, data.promptFeedback);
       return res.status(502).json({ error: "empty" });
     }
 
