@@ -3,7 +3,7 @@
 // Required environment variable: GEMINI_API_KEY
 // Optional: GEMINI_MODEL (default gemini-2.5-flash)
 
-const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const MODEL = process.env.GEMINI_MODEL;
 const MAX_TURNS = 14;        // how much chat history is sent each time
 const MAX_CHARS = 2000;      // longest single message accepted
 const LIMIT_PER_MIN = 20;    // best-effort limit per visitor (per server instance)
